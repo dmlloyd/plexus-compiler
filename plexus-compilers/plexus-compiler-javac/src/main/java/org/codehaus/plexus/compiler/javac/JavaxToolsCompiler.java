@@ -23,6 +23,19 @@ import org.codehaus.plexus.compiler.CompilerMessage;
 import org.codehaus.plexus.compiler.CompilerException;
 import org.codehaus.plexus.compiler.CompilerResult;
 
+import javax.annotation.processing.Completion;
+import javax.annotation.processing.Filer;
+import javax.annotation.processing.Messager;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.util.Elements;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
@@ -34,6 +47,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -122,6 +140,106 @@ public class JavaxToolsCompiler
 
             final JavaCompiler.CompilationTask task =
                 compiler.getTask( null, standardFileManager, collector, arguments, null, fileObjects );
+
+            List<org.codehaus.plexus.compiler.Processor> configProcessors = config.getProcessors();
+
+            if ( configProcessors != null )
+            {
+                List<Processor> processors = new ArrayList<Processor>();
+
+                for ( org.codehaus.plexus.compiler.Processor configProcessor : configProcessors )
+                {
+                    final Map<String, String> processorOptions = configProcessor.getOptions();
+
+                    // TODO: use processor artifact to acquire a new class loader, if possible; else skip to the next
+                    final ClassLoader classLoader = null;
+                    final ServiceLoader<Processor> serviceLoader = ServiceLoader.load( Processor.class, classLoader );
+                    // all iterator operations have to be in a try block to handle ServiceConfigurationError
+                    try {
+                        for ( Processor processor : serviceLoader )
+                        {
+                            if (processorOptions != null) {
+                                final Processor delegate = processor;
+                                processor = new Processor() {
+                                    public Set<String> getSupportedOptions()
+                                    {
+                                        return delegate.getSupportedOptions();
+                                    }
+
+                                    public Set<String> getSupportedAnnotationTypes()
+                                    {
+                                        return delegate.getSupportedAnnotationTypes();
+                                    }
+
+                                    public SourceVersion getSupportedSourceVersion()
+                                    {
+                                        return delegate.getSupportedSourceVersion();
+                                    }
+
+                                    public void init( final ProcessingEnvironment processingEnv )
+                                    {
+                                        delegate.init( new ProcessingEnvironment() {
+                                            public Map<String, String> getOptions()
+                                            {
+                                                return processorOptions;
+                                            }
+
+                                            public Messager getMessager()
+                                            {
+                                                return processingEnv.getMessager();
+                                            }
+
+                                            public Filer getFiler()
+                                            {
+                                                return processingEnv.getFiler();
+                                            }
+
+                                            public Elements getElementUtils()
+                                            {
+                                                return processingEnv.getElementUtils();
+                                            }
+
+                                            public Types getTypeUtils()
+                                            {
+                                                return processingEnv.getTypeUtils();
+                                            }
+
+                                            public SourceVersion getSourceVersion()
+                                            {
+                                                return processingEnv.getSourceVersion();
+                                            }
+
+                                            public Locale getLocale()
+                                            {
+                                                return processingEnv.getLocale();
+                                            }
+                                        } );
+                                    }
+
+                                    public boolean process( final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnv )
+                                    {
+                                        return delegate.process( annotations, roundEnv );
+                                    }
+
+                                    public Iterable<? extends Completion> getCompletions( final Element element, final AnnotationMirror annotation, final ExecutableElement member, final String userText )
+                                    {
+                                        return delegate.getCompletions( element, annotation, member, userText );
+                                    }
+                                };
+                            }
+                            processors.add(processor);
+                        }
+                    }
+                    catch ( ServiceConfigurationError e )
+                    {
+                        throw new CompilerException( "Failed to load an annotation processor from " + classLoader, e );
+                    }
+                }
+
+                // override any previously configured -processors or discovery
+                task.setProcessors( processors );
+            }
+
             final Boolean result = task.call();
             final ArrayList<CompilerMessage> compilerMsgs = new ArrayList<CompilerMessage>();
             for ( Diagnostic<? extends JavaFileObject> diagnostic : collector.getDiagnostics() )

@@ -25,6 +25,7 @@ package org.codehaus.plexus.compiler;
  */
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -117,6 +118,11 @@ public class CompilerConfiguration
      * -processor parameters in jdk 1.6+
      */
     private String[] annotationProcessors;
+
+    /**
+     * Annotation processors (supercedes {@link #annotationProcessors} if present)
+     */
+    private List<Processor> processors = new ArrayList<Processor>();
 
     /**
      * default value {@link CompilerReuseStrategy.ReuseCreated}
@@ -507,6 +513,19 @@ public class CompilerConfiguration
     public String[] getAnnotationProcessors()
     {
         return annotationProcessors;
+    }
+
+    public List<Processor> getProcessors()
+    {
+        if (processors == null) {
+            processors = new ArrayList<Processor>();
+        }
+        return processors;
+    }
+
+    public void setProcessors( final List<Processor> processors )
+    {
+        this.processors = processors;
     }
 
     public CompilerReuseStrategy getCompilerReuseStrategy()
