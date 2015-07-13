@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.maven.project.MavenProject;
+
 /**
  * @author jdcasey
  */
@@ -123,6 +125,11 @@ public class CompilerConfiguration
      * Annotation processors (supercedes {@link #annotationProcessors} if present)
      */
     private List<Processor> processors = new ArrayList<Processor>();
+
+    /**
+     * The Maven project.
+     */
+    private MavenProject project;
 
     /**
      * default value {@link CompilerReuseStrategy.ReuseCreated}
@@ -526,6 +533,16 @@ public class CompilerConfiguration
     public void setProcessors( final List<Processor> processors )
     {
         this.processors = processors;
+    }
+
+    public MavenProject getProject()
+    {
+        return project;
+    }
+
+    public void setProject( final MavenProject project )
+    {
+        this.project = project;
     }
 
     public CompilerReuseStrategy getCompilerReuseStrategy()

@@ -18,10 +18,14 @@ package org.codehaus.plexus.compiler.javac;
  * under the License.
  */
 
+import org.apache.maven.artifact.repository.ArtifactRepository;
+import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.codehaus.plexus.compiler.CompilerConfiguration;
 import org.codehaus.plexus.compiler.CompilerMessage;
 import org.codehaus.plexus.compiler.CompilerException;
 import org.codehaus.plexus.compiler.CompilerResult;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.resolution.ArtifactRequest;
 
 import javax.annotation.processing.Completion;
 import javax.annotation.processing.Filer;
@@ -150,6 +154,10 @@ public class JavaxToolsCompiler
                 for ( org.codehaus.plexus.compiler.Processor configProcessor : configProcessors )
                 {
                     final Map<String, String> processorOptions = configProcessor.getOptions();
+
+                    final List<ArtifactRepository> pluginArtifactRepositories = config.getProject().getPluginArtifactRepositories();
+                    RepositorySystem repositorySystem = ;
+                    repositorySystem.resolveArtifact( MavenRepositorySystemUtils.newSession(), new ArtifactRequest(  ) )
 
                     // TODO: use processor artifact to acquire a new class loader, if possible; else skip to the next
                     final ClassLoader classLoader = null;
